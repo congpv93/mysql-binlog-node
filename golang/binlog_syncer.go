@@ -1,14 +1,17 @@
 package main
 
 import (
+	"encoding/base64"
 	"fmt"
+
+	"log"
+	"math/bits"
+
 	"github.com/go-mysql-org/go-mysql/canal"
 	"github.com/go-mysql-org/go-mysql/mysql"
 	"github.com/go-mysql-org/go-mysql/replication"
 	"github.com/go-mysql-org/go-mysql/schema"
 	logger "github.com/siddontang/go-log/log"
-	"log"
-	"math/bits"
 )
 
 type MysqlBinlogPosition struct {
@@ -132,6 +135,20 @@ func (eh *canalEventHandler) OnRow(event *canal.RowsEvent) error {
 
 				parsedRow[column.Name] = setValues
 				continue
+			}
+
+			// Handle TEXT/BLOB data by checking if the value is []byte
+			if row[idx] != nil {
+				if textValue, ok := row[idx].([]byte); ok {
+					// Try to decode base64 first, if it's base64 encoded
+					if decoded, err := base64.StdEncoding.DecodeString(string(textValue)); err == nil {
+						parsedRow[column.Name] = string(decoded)
+					} else {
+						// If not base64, just convert to string directly
+						parsedRow[column.Name] = string(textValue)
+					}
+					continue
+				}
 			}
 
 			parsedRow[column.Name] = row[idx]
