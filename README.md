@@ -2,7 +2,7 @@
 
 A library wrapping the [go-mysql](https://github.com/go-mysql-org/go-mysql) package, providing a MySQL client connector and binlog parsing implementation.
 
-> This project is forked from [go-mysql-js](https://github.com/go-mysql-org/go-mysql-js)
+> This project is forked from [go-mysql-js](https://github.com/mcuelenaere/mysql-binlog-node)
 
 ## Installation
 

@@ -1,6 +1,6 @@
 {
     "name": "@solashi/go-mysql-binlog-node",
-    "version": "0.0.1",
+    "version": "0.0.3",
     "description": "A Node.js MySQL binlog listener based on go-mysql",
     "main": "dist/binding.js",
     "types": "dist/binding.d.ts",
