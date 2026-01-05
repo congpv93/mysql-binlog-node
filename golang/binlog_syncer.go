@@ -6,6 +6,7 @@ import (
 
 	"log"
 	"math/bits"
+	"unicode/utf8"
 
 	"github.com/go-mysql-org/go-mysql/canal"
 	"github.com/go-mysql-org/go-mysql/mysql"
@@ -140,12 +141,15 @@ func (eh *canalEventHandler) OnRow(event *canal.RowsEvent) error {
 			// Handle TEXT/BLOB data by checking if the value is []byte
 			if row[idx] != nil {
 				if textValue, ok := row[idx].([]byte); ok {
-					// Try to decode base64 first, if it's base64 encoded
-					if decoded, err := base64.StdEncoding.DecodeString(string(textValue)); err == nil {
-						parsedRow[column.Name] = string(decoded)
+					if utf8.Valid(textValue) {
+						if decoded, err := base64.StdEncoding.DecodeString(string(textValue)); err == nil {
+							parsedRow[column.Name] = string(decoded)
+						} else {
+							parsedRow[column.Name] = string(textValue)
+						}
 					} else {
-						// If not base64, just convert to string directly
-						parsedRow[column.Name] = string(textValue)
+						// Invalid UTF-8 (binary/encrypted data), base64-encode for safe JSON transmission
+						parsedRow[column.Name] = base64.StdEncoding.EncodeToString(textValue)
 					}
 					continue
 				}
