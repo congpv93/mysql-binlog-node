@@ -138,15 +138,15 @@ func (eh *canalEventHandler) OnRow(event *canal.RowsEvent) error {
 				continue
 			}
 
-			// Handle TEXT/BLOB data by checking if the value is []byte
+			// Handle TEXT/BLOB: binlog sends string columns as []byte.
+			// Previously we tried to "convert base64 to string when type TEXT" (decode base64 then use decoded string).
+			// That was removed because plain text like "TEST" is also valid base64 and was wrongly decoded to garbage (e.g. "LD�").
+			// Now: valid UTF-8 → use as plain string; invalid UTF-8 (binary) → base64-encode for safe JSON.
 			if row[idx] != nil {
 				if textValue, ok := row[idx].([]byte); ok {
 					if utf8.Valid(textValue) {
-						if decoded, err := base64.StdEncoding.DecodeString(string(textValue)); err == nil {
-							parsedRow[column.Name] = string(decoded)
-						} else {
-							parsedRow[column.Name] = string(textValue)
-						}
+						// Valid UTF-8: use as plain text (do not base64-decode; plain text like "TEST" is also valid base64 and would decode to garbage)
+						parsedRow[column.Name] = string(textValue)
 					} else {
 						// Invalid UTF-8 (binary/encrypted data), base64-encode for safe JSON transmission
 						parsedRow[column.Name] = base64.StdEncoding.EncodeToString(textValue)
